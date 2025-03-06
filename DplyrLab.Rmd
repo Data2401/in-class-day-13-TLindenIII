@@ -1,6 +1,11 @@
 ---
 title: "Intro to dplyr -  Lab"
-output: html_document
+author: "Thomas Linden"
+date: "6 Mar, 2025"
+output: 
+  html_document:
+    theme: paper
+    highlight: zenburn
 ---
 ```{r}
 library(tidyverse)
@@ -26,14 +31,15 @@ my_flights <- flights ## getting a copy of the data in the environment
 1. Use functions to inspect it: how many rows and columns does it have? What are the names of the columns? Hint: Use `??flights` to search for documentation on the data set (for what the columns contain)
 
 ```{r}
-
+#336,776 Rows and 19 Cols
+glimpse(flights)
 ```
 
 
 2. Use `dplyr` to give the data frame a new column that is the amount of time gained or lost while flying (that is: how much of the delay arriving occurred during flight, as opposed to before departing).
 
 ```{r}
-
+my_flights <- my_flights %>% mutate(time_gained = arr_delay - dep_delay)
 ```
 
 
@@ -41,26 +47,27 @@ my_flights <- flights ## getting a copy of the data in the environment
 3. Use `dplyr` to sort your data frame in descending order by the column you just created. Remember to save this as a variable (or in the same one!)
 
 ```{r}
-
+my_flights <- my_flights %>% arrange(desc(time_gained)) %>% select(time_gained, arr_delay, dep_delay, everything())
+my_flights
 ```
 
 4. If you haven't already, do the last 2 steps in a single statement using the pipe operator. 
 
 ```{r}
-
+#my_flights <- my_flights %>% mutate(time_gained = arr_delay - dep_delay) %>% arrange(desc(time_gained)) %>% select(time_gained, everything())
 ```
 
 5. Make a histogram of the amount of time gained using the `hist()` function
 
 ```{r}
-
+hist(my_flights$time_gained)
 ```
 
 
 6. On average, did flights gain or lose time? Note: use the `na.rm = TRUE` argument to remove NA values from your aggregation
 
 ```{r}
-
+mean(my_flights$time_gained, na.rm = TRUE)
 
 ```
 
@@ -68,7 +75,8 @@ my_flights <- flights ## getting a copy of the data in the environment
 7. Create a data.frame of flights with a destination of Hobby Airport (Airport code 'HOU'), only including the origin, destination, and the "made_up_time" column you just created
 
 ```{r}
-
+hobby_flights <- my_flights %>% filter(dest == 'HOU') %>% select(origin, dest, time_gained)
+hobby_flights
 ```
 
 
@@ -76,8 +84,8 @@ my_flights <- flights ## getting a copy of the data in the environment
 
 
 ```{r}
-
-
+sea_flights <- my_flights %>% filter(dest == 'SEA')
+mean(sea_flights$time_gained, na.rm = TRUE)
 ```
 
   
@@ -87,22 +95,28 @@ my_flights <- flights ## getting a copy of the data in the environment
 Go back to our flights exercise data. Consider flights from JFK to SEA. What was the average, min, and max air time of those flights? Use pipes to answer this question in one statement (without showing any other data)!
 
 ```{r}
-
-
+my_flights %>% 
+  filter(origin == 'JFK', dest == 'SEA') %>%
+  na.omit(cols = c(arr_delay, dep_delay)) %>% 
+  summarise(mean = mean(time_gained), 
+            min = min(time_gained), 
+            max = max(time_gained))
 ```
 
 Consider flights coming into Houston (HOU and IAH). What is the mean arrival delay by departure airport? 
 
 ```{r}
-
+my_flights %>% 
+  filter(dest %in% c("HOU", "IAH")) %>% 
+  group_by(origin, dest) %>% 
+  summarise(mean = mean(arr_delay, na.rm = T))
 
 ```
 
 Getting ready for next class: Create a list of all the different values for the destination airport.
 
 ```{r}
-
-
+list(destinations = unique(my_flights$dest))
 ```
 
 Hmm... I don't know about you, but it sure does seem like there are some values here I don't recognize! 
@@ -115,6 +129,7 @@ In the package `dplyr` there is a dataset called `starwars`.
 
 ```{r}
 glimpse(starwars)
+starwars <- starwars
 ```
 
 
@@ -133,7 +148,8 @@ starwars %>% filter(species == "Human") %>% plot(mass ~ height, data = .)
 Now, change this to see the same plot for the Droids. 
 
 ```{r}
-
+starwars %>% filter(species == 'Droid')
+starwars %>% filter(species == 'Droid') %>% plot(height ~ mass, .)
 
 ```
 
@@ -141,21 +157,26 @@ Now, change this to see the same plot for the Droids.
 How many characters are from each planet?
 
 ```{r}
-
-
-
+starwars %>% 
+  group_by(homeworld) %>% 
+  count()
 ```
 
 If you wanted to arrange this in descending order, what would you add to the pipe? 
 
 ```{r}
-
+starwars %>% 
+  group_by(homeworld) %>% 
+  count() %>% 
+  arrange(desc(n))
 ```
 
 Find the average height for each eye color. You might find some of the answers to be strange, but keep going! 
 
 ```{r}
-
+starwars %>% 
+  group_by(eye_color) %>% 
+  summarise(avg_height = mean(height))
 
 ```
 
@@ -163,7 +184,8 @@ So.... What's with the NAs? Filter down to just brown eyes find out what's going
 
 
 ```{r}
-
+starwars %>% 
+  filter(eye_color == "brown")
 
 ```
 
@@ -171,7 +193,9 @@ Okay, so we have missing data here. Try summarising with `na.omit(height)` inste
 
 
 ```{r}
-
+starwars %>% 
+  group_by(eye_color) %>%
+  summarise(avg_height = mean(height, na.rm = T))
 
 ```
 
@@ -179,7 +203,13 @@ So, who is the tallest male? How many blue eyed women are there? How many gender
 
 
 ```{r}
+starwars %>% 
+  filter(height == max(height, na.rm = T))
 
+starwars %>% 
+  group_by(sex, eye_color) %>% 
+  count() %>% 
+  filter(sex == 'female', eye_color == 'blue')
 ```
 
 
